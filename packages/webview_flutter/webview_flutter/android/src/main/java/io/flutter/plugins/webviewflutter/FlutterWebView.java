@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
+import android.webkit.DownloadListener;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -19,6 +20,7 @@ import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -116,18 +118,25 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
         (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
     displayListenerProxy.onPreWebViewInitialization(displayManager);
 
+    this.methodChannel = methodChannel;
+    this.methodChannel.setMethodCallHandler(this);
+
+    flutterWebViewClient = new FlutterWebViewClient(methodChannel);
+
+    FlutterDownloadListener flutterDownloadListener =
+        new FlutterDownloadListener(flutterWebViewClient);
     webView =
         createWebView(
-            new WebViewBuilder(context, containerView), params, new FlutterWebChromeClient());
+            new WebViewBuilder(context, containerView),
+            params,
+            new FlutterWebChromeClient(),
+            flutterDownloadListener);
+    flutterDownloadListener.setWebView(webView);
 
     displayListenerProxy.onPostWebViewInitialization(displayManager);
 
     platformThreadHandler = new Handler(context.getMainLooper());
 
-    this.methodChannel = methodChannel;
-    this.methodChannel.setMethodCallHandler(this);
-
-    flutterWebViewClient = new FlutterWebViewClient(methodChannel);
     Map<String, Object> settings = (Map<String, Object>) params.get("settings");
     if (settings != null) {
       applySettings(settings);
@@ -178,7 +187,10 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
    */
   @VisibleForTesting
   static WebView createWebView(
-      WebViewBuilder webViewBuilder, Map<String, Object> params, WebChromeClient webChromeClient) {
+      WebViewBuilder webViewBuilder,
+      Map<String, Object> params,
+      WebChromeClient webChromeClient,
+      @Nullable DownloadListener downloadListener) {
     boolean usesHybridComposition = Boolean.TRUE.equals(params.get("usesHybridComposition"));
     webViewBuilder
         .setUsesHybridComposition(usesHybridComposition)
@@ -186,8 +198,9 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
         .setJavaScriptCanOpenWindowsAutomatically(
             true) // Always allow automatically opening of windows.
         .setSupportMultipleWindows(true) // Always support multiple windows.
-        .setWebChromeClient(
-            webChromeClient); // Always use {@link FlutterWebChromeClient} as web Chrome client.
+        .setWebChromeClient(webChromeClient)
+        .setDownloadListener(
+            downloadListener); // Always use {@link FlutterWebChromeClient} as web Chrome client.
 
     return webViewBuilder.build();
   }

@@ -687,11 +687,13 @@ public class CameraTest {
         mockCameraFeatureFactory.createExposureOffsetFeature(mockCameraProperties);
     MethodChannel.Result mockResult = mock(MethodChannel.Result.class);
 
+    when(mockExposureOffsetFeature.getValue()).thenReturn(1.0);
+
     camera.setExposureOffset(mockResult, 1.0);
 
     verify(mockExposureOffsetFeature, times(1)).setValue(1.0);
     verify(mockResult, never()).error(any(), any(), any());
-    verify(mockResult, times(1)).success(null);
+    verify(mockResult, times(1)).success(1.0);
   }
 
   @Test
@@ -742,6 +744,33 @@ public class CameraTest {
     camera.unlockCaptureOrientation();
 
     verify(mockSensorOrientationFeature, times(1)).unlockCaptureOrientation();
+  }
+
+  @Test
+  public void pausePreview_shouldPausePreview() throws CameraAccessException {
+    camera.pausePreview();
+
+    assertEquals(TestUtils.getPrivateField(camera, "pausedPreview"), true);
+    verify(mockCaptureSession, times(1)).stopRepeating();
+  }
+
+  @Test
+  public void resumePreview_shouldResumePreview() throws CameraAccessException {
+    camera.resumePreview();
+
+    assertEquals(TestUtils.getPrivateField(camera, "pausedPreview"), false);
+    verify(mockCaptureSession, times(1)).setRepeatingRequest(any(), any(), any());
+  }
+
+  @Test
+  public void resumePreview_shouldSendErrorEventOnCameraAccessException()
+      throws CameraAccessException {
+    when(mockCaptureSession.setRepeatingRequest(any(), any(), any()))
+        .thenThrow(new CameraAccessException(0));
+
+    camera.resumePreview();
+
+    verify(mockDartMessenger, times(1)).sendCameraErrorEvent(any());
   }
 
   private static class TestCameraFeatureFactory implements CameraFeatureFactory {
