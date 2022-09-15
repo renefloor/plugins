@@ -19,7 +19,11 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
-  webview_flutter_android: ^2.8.0
+  webview_flutter_android:
+    git:
+      url: https://github.com/renefloor/plugins.git
+      path: packages/webview_flutter/webview_flutter_android
+      ref: 929d5b23a613dde06a1c3cedc9565ff7d845a664
   webview_flutter_platform_interface: ^1.9.3
   webview_flutter_wkwebview: ^2.7.0
 
