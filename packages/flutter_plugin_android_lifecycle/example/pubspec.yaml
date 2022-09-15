@@ -17,11 +17,10 @@ dependencies:
     path: ../
 
 dev_dependencies:
-  integration_test:
-    sdk: flutter
   flutter_test:
     sdk: flutter
-  pedantic: ^1.8.0
+  integration_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
